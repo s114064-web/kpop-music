@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>K-Pop 音樂播放清單</title>
+    <style>
+        :root {
+            --primary-color: #ff0055;
+            --bg-color: #0f0f0f;
+            --card-bg: #1e1e1e;
+            --text-color: #ffffff;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        header {
+            padding: 20px;
+            text-align: center;
+            width: 100%;
+            background: linear-gradient(180deg, #252525 0%, #0f0f0f 100%);
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1000px;
+            margin-top: 20px;
+        }
+
+        /* 播放器區域 */
+        .player-section {
+            position: sticky;
+            top: 10px;
+            z-index: 100;
+            background: var(--card-bg);
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            margin-bottom: 30px;
+        }
+
+        .video-container {
+            position: relative;
+            padding-bottom: 56.25%; /* 16:9 */
+            height: 0;
+            overflow: hidden;
+            border-radius: 8px;
+        }
+
+        .video-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* 類別按鈕 */
+        .category-nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 25px;
+        }
+
+        .tab-btn {
+            background: #333;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .tab-btn.active {
+            background: var(--primary-color);
+            font-weight: bold;
+        }
+
+        /* 歌曲列表 */
+        .song-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 15px;
+        }
+
+        .song-card {
+            background: var(--card-bg);
+            border-radius: 10px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.2s;
+            border: 1px solid transparent;
+        }
+
+        .song-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--primary-color);
+        }
+
+        .song-card img {
+            width: 100%;
+            aspect-ratio: 16/9;
+            object-fit: cover;
+        }
+
+        .song-info {
+            padding: 10px;
+        }
+
+        .song-title {
+            font-size: 0.9rem;
+            font-weight: bold;
+            margin: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .artist-name {
+            font-size: 0.8rem;
+            color: #aaa;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>🎵 K-Pop Music Hub</h1>
+    <p>選擇你喜歡的團體開始聽歌</p>
+</header>
+
+<div class="container">
+    <div class="player-section">
+        <div class="video-container">
+            <iframe id="main-player" src="https://www.youtube.com/embed/gQlMMD8auMs" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+        </div>
+        <h3 id="current-playing-title" style="margin-top: 15px; color: var(--primary-color);">正在播放: 請選擇歌曲</h3>
+    </div>
+
+    <div class="category-nav" id="category-nav">
+        </div>
+
+    <div class="song-grid" id="song-list">
+        </div>
+</div>
+
+<script>
+    // 歌曲資料庫 (YouTube ID)
+    const playlistData = {
+        "BLACKPINK": [
+            { title: "Pink Venom", id: "gQlMMD8auMs" },
+            { title: "Shut Down", id: "POeV9szJH4A" },
+            { title: "How You Like That", id: "ioNng23DkIM" }
+        ],
+        "STRAYKIDS": [
+            { title: "Chk Chk Boom", id: "0P0naBfS_Zk" },
+            { title: "S-Class", id: "JsOOis4bBFg" },
+            { title: "God's Menu", id: "TQTlCHxyuu8" }
+        ],
+        "BABYMONSTER": [
+            { title: "SHEESH", id: "2wA_b64I9S8" },
+            { title: "BATTER UP", id: "olDWmC0fN9I" },
+            { title: "FOREVER", id: "mS8_85R_008" }
+        ],
+        "BOYNEXTDOOR": [
+            { title: "Nice Guy", id: "L4eG6W4-x38" },
+            { title: "Earth, Wind & Fire", id: "j09re9qI728" },
+            { title: "One and Only", id: "jqiU9_Sreio" }
+        ],
+        "MEOVV": [
+            { title: "MEOW", id: "6vV6IAnfB3Y" }
+        ],
+        "ITZY": [
+            { title: "GOLD", id: "3jS_I_4fE88" },
+            { title: "WANNABE", id: "fE2h3lGlOsk" },
+            { title: "LOCO", id: "MjCZfZfucEc" }
+        ],
+        "TXT": [
+            { title: "Over The Moon", id: "p0V1j-iX60M" },
+            { title: "Sugar Rush Ride", id: "P9tKTxG5Kyc" },
+            { title: "0X1=LOVESONG", id: "d5bbqKYu51w" }
+        ],
+        "TWS": [
+            { title: "plot twist", id: "hV69f8nI8I8" },
+            { title: "If I'm S, Can You Be My N?", id: "v_8X_Nn6oO0" }
+        ]
+    };
+
+    const categoryNav = document.getElementById('category-nav');
+    const songList = document.getElementById('song-list');
+    const player = document.getElementById('main-player');
+    const playingTitle = document.getElementById('current-playing-title');
+
+    // 初始化：生成按鈕
+    function init() {
+        Object.keys(playlistData).forEach((group, index) => {
+            const btn = document.createElement('button');
+            btn.className = `tab-btn ${index === 0 ? 'active' : ''}`;
+            btn.innerText = group;
+            btn.onclick = () => showGroup(group, btn);
+            categoryNav.appendChild(btn);
+        });
+
+        // 預設顯示第一個團體
+        showGroup(Object.keys(playlistData)[0], categoryNav.firstChild);
+    }
+
+    // 切換顯示的團體歌曲
+    function showGroup(groupName, btnElement) {
+        // 更新按鈕樣式
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btnElement.classList.add('active');
+
+        // 清空並重新生成列表
+        songList.innerHTML = '';
+        playlistData[groupName].forEach(song => {
+            const card = document.createElement('div');
+            card.className = 'song-card';
+            card.innerHTML = `
+                <img src="https://img.youtube.com/vi/${song.id}/mqdefault.jpg" alt="${song.title}">
+                <div class="song-info">
+                    <p class="song-title">${song.title}</p>
+                    <p class="artist-name">${groupName}</p>
+                </div>
+            `;
+            card.onclick = () => playSong(song.id, song.title, groupName);
+            songList.appendChild(card);
+        });
+    }
+
+    // 播放歌曲
+    function playSong(id, title, artist) {
+        player.src = `https://www.youtube.com/embed/${id}?autoplay=1`;
+        playingTitle.innerText = `正在播放: ${artist} - ${title}`;
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    init();
+</script>
+
+</body>
+</html>
